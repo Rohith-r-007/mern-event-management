@@ -2,7 +2,7 @@ const userModel = require('../models/user.model.js');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const otpModel = require('../models/otp.models.js');
-const { sendOtpEmail, sendBookingEmail } = require('../utils/email.js');
+const { sendOtpEmail } = require('../utils/email.js');
 
 async function registerUser(req, res) {
     const { name, email, password } = req.body;
@@ -46,7 +46,7 @@ async function registerUser(req, res) {
             _id: user._id,
             name: user.name,
             email: user.email,
-            role: user.role
+            role: user.role,
         },
     });
 }
@@ -101,7 +101,8 @@ async function loginUser(req, res) {
             _id: user._id,
             name: user.name,
             email: user.email,
-            role: user.role
+            role: user.role,
+            token: token
         },
     });
 }
@@ -119,13 +120,22 @@ async function verifyOtp(req, res) {
     const user = await userModel.findOneAndUpdate({ email }, { isVerified: true });
     await otpRecord.deleteOne();
 
+    const token = jwt.sign({
+        id: user._id,
+        role: user.role,
+    }, process.env.JWT_SECRET, {
+        expiresIn: '7d',
+    })
+    res.cookie('token', token)
+
     res.status(200).json({
         message: 'OTP verified successfully' ,
         user: {
             _id: user._id,
             name: user.name,
             email: user.email,
-            role: user.role
+            role: user.role,
+            token: token
         },
     });
 }
