@@ -8,7 +8,14 @@ const generateOTP = () => {
 };
 
 async function sendBookingOtp(req, res) {
+    const { eventId } = req.body;
     const otp = generateOTP();
+
+    const event = await eventModel.findById(eventId);
+    if (!event) {
+        return res.status(404).json({ message: 'Event not found' });
+    }
+
     await otpModel.findOneAndDelete({ email: req.user.email, action: 'event_booking' });
     await otpModel.create({
         email: req.user.email,
@@ -16,24 +23,33 @@ async function sendBookingOtp(req, res) {
         action: 'event_booking',
         expiresAt: new Date(Date.now() + 5 * 60 * 1000)
     });
-    await sendOtpEmail(req.user.email, otp, 'event_booking');
+
+    await sendOtpEmail(req.user.email, otp, 'event_booking', {
+        title: event.title,
+        date: event.date,
+        location: event.location
+    });
     res.status(200).json({ message: 'OTP sent successfully' });
 }
 
 async function bookEvent(req, res) {
-    const { eventId, numberOfTickets } = req.body;
-    
+    const { eventId, otp, numberOfTickets = 1 } = req.body;
+
+    if (!otp) {
+        return res.status(400).json({ message: 'OTP is required to confirm booking' });
+    }
+
     const otpRecord = await otpModel.findOne({ email: req.user.email, action: 'event_booking' });
-    if (!otpRecord) {
-        return res.status(400).json({ message: 'Invalid OTP' });
+    if (!otpRecord || otpRecord.otp !== otp || otpRecord.expiresAt < new Date()) {
+        return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
     const event = await eventModel.findById(eventId);
     if (!event) {
         return res.status(404).json({ message: 'Event not found' });
     }
-    if (event.totalSeats <= 0) {
-        return res.status(400).json({ message: 'Event is full' });
+    if (event.availableSeats < numberOfTickets) {
+        return res.status(400).json({ message: 'Not enough seats available' });
     }
 
     const existingBooking = await bookingModel.findOne({ userId: req.user._id, eventId: eventId });
@@ -49,13 +65,15 @@ async function bookEvent(req, res) {
         totalPrice: event.price * numberOfTickets,
     });
 
+    event.availableSeats -= numberOfTickets;
+    await event.save();
+
     await otpModel.deleteMany({ email: req.user.email, action: 'event_booking' });
 
     res.status(201).json({ 
         message: 'Booking created successfully',
         booking: booking
     });
-    
 }
 
 async function confirmBooking(req, res) {
@@ -70,8 +88,8 @@ async function confirmBooking(req, res) {
     }
 
     const event = await eventModel.findById(booking.eventId);
-    if (event.totalSeats < booking.numberOfTickets) {
-        return res.status(400).json({ message: 'Not enough seats available' });
+    if (!event) {
+        return res.status(404).json({ message: 'Event not found' });
     }
 
     booking.status = 'confirmed';
@@ -79,9 +97,6 @@ async function confirmBooking(req, res) {
         booking.paymentStatus = 'paid';
     }
     await booking.save();
-
-    event.totalSeats -= booking.numberOfTickets;
-    await event.save();
 
     await sendBookingEmail(req.user.email, req.user.name, event.title);
 
@@ -93,16 +108,23 @@ async function getMyBookings(req, res) {
     res.status(200).json(bookings);
 }
 
+async function getAllBookings(req, res) {
+    const bookings = await bookingModel.find().populate('eventId').populate('userId');
+    res.status(200).json(bookings);
+}
+
 async function deleteBooking(req, res) {
     const booking = await bookingModel.findById(req.params.id);
     if (!booking) {
         return res.status(404).json({ message: 'Booking not found' });
     }
 
-    if (booking.status === 'confirmed'){
+    if (booking.status === 'pending' || booking.status === 'confirmed'){
         const event = await eventModel.findById(booking.eventId);
-        event.totalSeats += booking.numberOfTickets;
-        await event.save();
+        if (event) {
+            event.availableSeats += booking.numberOfTickets;
+            await event.save();
+        }
     }
 
     booking.status = 'cancelled';
@@ -113,11 +135,18 @@ async function deleteBooking(req, res) {
         message: 'Booking deleted successfully' });
 }
 
+async function clearCancelledBookings(req, res) {
+    const result = await bookingModel.deleteMany({ status: 'cancelled' });
+    res.status(200).json({ message: `${result.deletedCount} cancelled bookings removed.` });
+}
+
 module.exports = {
     bookEvent,
     confirmBooking,
     getMyBookings,
+    getAllBookings,
     deleteBooking,
+    clearCancelledBookings,
     sendBookingOtp
 };
 

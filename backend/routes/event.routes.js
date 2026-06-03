@@ -4,7 +4,7 @@ const { protect, adminProtect } = require('../middleware/auth.middleware');
 const { getAllEvents, getEventById, createEvent, updateEvent, deleteEvent } = require('../controller/event.controller.js');
 
 //get all events
-router.get('/', protect, getAllEvents);
+router.get('/',protect, getAllEvents);
 
 // get event by id
 router.get('/:id', protect, getEventById);

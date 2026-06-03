@@ -83,7 +83,8 @@ async function loginUser(req, res) {
         await sendOtpEmail(email, otp, 'acc_verification');
 
         return res.status(400).json({
-            message: 'User not verified, a new OTP has been sent to your email' 
+            message: 'User not verified, a new OTP has been sent to your email',
+            needsVerification: true,
         });
     }
 
@@ -140,9 +141,25 @@ async function verifyOtp(req, res) {
     });
 }
 
+async function getCurrentUser(req, res) {
+    const user = await userModel.findById(req.user._id).select('-password');
+    if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({
+        user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+        }
+    });
+}
 
 module.exports = {
     registerUser,
     loginUser,
-    verifyOtp
+    verifyOtp,
+    getCurrentUser
 }

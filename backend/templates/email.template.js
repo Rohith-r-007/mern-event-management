@@ -1,4 +1,19 @@
-function emailTemplate(title, msg, otp) {
+function emailTemplate(title, msg, otp, eventDetails = null) {
+    const eventInfoSection = eventDetails ? `
+        <div style="
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #fafafa;
+        ">
+            <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #111;">Event Details</h3>
+            <p style="margin: 6px 0; color: #555;"><strong>Title:</strong> ${eventDetails.title}</p>
+            <p style="margin: 6px 0; color: #555;"><strong>Date:</strong> ${eventDetails.date ? new Date(eventDetails.date).toLocaleString() : 'TBA'}</p>
+            <p style="margin: 6px 0; color: #555;"><strong>Location:</strong> ${eventDetails.location || 'TBA'}</p>
+        </div>
+    ` : '';
+
     return `
     <div style="
         font-family: Arial, sans-serif;
@@ -42,6 +57,8 @@ function emailTemplate(title, msg, otp) {
                 ${otp}
             </span>
         </div>
+
+        ${eventInfoSection}
 
         <p style="
             font-size: 14px;

@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-async function sendOtpEmail(userEmail, otp, type) {
+async function sendOtpEmail(userEmail, otp, type, eventDetails = null) {
     try {
         const title = type === 'acc_verification'
         ? 'Account Verification'
@@ -26,7 +26,7 @@ async function sendOtpEmail(userEmail, otp, type) {
             from: process.env.EMAIL_USER,
             to: userEmail,
             subject: `${otp} - ${title}`,
-            html: emailTemplate(title, msg, otp) //styling
+            html: emailTemplate(title, msg, otp, eventDetails) //styling
         };
     
         await transporter.sendMail(mailOptions);
