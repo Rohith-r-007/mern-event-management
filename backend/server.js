@@ -5,6 +5,7 @@ const connectDB = require('./db/db');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth.routes.js');
 const eventRoutes = require('./routes/event.routes.js');
+const bookingRoutes = require('./routes/booking.routes.js');
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ connectDB();
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 
 const PORT = process.env.PORT || 3000;

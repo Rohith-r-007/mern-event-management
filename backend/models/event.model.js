@@ -31,7 +31,9 @@ const eventSchema = new mongoose.Schema({
     },
     availableSeats: {
         type: Number,
-        required: true
+        default: function() {
+            return this.totalSeats;
+        }
     },
     image: {
         type: String,

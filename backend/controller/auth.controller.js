@@ -1,7 +1,7 @@
 const userModel = require('../models/user.model.js');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const otpModel = require('../models/otp.models.js');
+const otpModel = require('../models/otp.model.js');
 const { sendOtpEmail } = require('../utils/email.js');
 
 async function registerUser(req, res) {

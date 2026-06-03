@@ -21,7 +21,7 @@ async function sendBookingOtp(req, res) {
 }
 
 async function bookEvent(req, res) {
-    const { eventId, otp } = req.body;
+    const { eventId, numberOfTickets } = req.body;
     
     const otpRecord = await otpModel.findOne({ email: req.user.email, action: 'event_booking' });
     if (!otpRecord) {
@@ -44,13 +44,17 @@ async function bookEvent(req, res) {
     const booking = await bookingModel.create({
         userId: req.user._id,
         eventId: eventId,
+        numberOfTickets: numberOfTickets,
         status: 'pending',
-        totalPrice: event.price
+        totalPrice: event.price * numberOfTickets,
     });
 
     await otpModel.deleteMany({ email: req.user.email, action: 'event_booking' });
 
-    res.status(201).json({ message: 'Booking created successfully' });
+    res.status(201).json({ 
+        message: 'Booking created successfully',
+        booking: booking
+    });
     
 }
 
@@ -61,13 +65,13 @@ async function confirmBooking(req, res) {
     if (!booking) {
         return res.status(404).json({ message: 'Booking not found' });
     }
-    if (paymentStatus === 'paid') {
+    if (booking.paymentStatus === 'paid') {
         return res.status(400).json({ message: 'Payment already done' });
     }
 
     const event = await eventModel.findById(booking.eventId);
-    if (event.totalSeats <= 0) {
-        return res.status(400).json({ message: 'No seats available' });
+    if (event.totalSeats < booking.numberOfTickets) {
+        return res.status(400).json({ message: 'Not enough seats available' });
     }
 
     booking.status = 'confirmed';
@@ -75,10 +79,11 @@ async function confirmBooking(req, res) {
         booking.paymentStatus = 'paid';
     }
     await booking.save();
-    event.totalSeats -= 1;
+
+    event.totalSeats -= booking.numberOfTickets;
     await event.save();
 
-    await sendBookingConfirmationEmail(req.user.email, req.user.name, event.title);
+    await sendBookingEmail(req.user.email, req.user.name, event.title);
 
     res.status(200).json({ message: 'Booking confirmed successfully' });
 }
@@ -96,7 +101,7 @@ async function deleteBooking(req, res) {
 
     if (booking.status === 'confirmed'){
         const event = await eventModel.findById(booking.eventId);
-        event.totalSeats += 1;
+        event.totalSeats += booking.numberOfTickets;
         await event.save();
     }
 
@@ -104,7 +109,8 @@ async function deleteBooking(req, res) {
     await booking.save();
 
     await bookingModel.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: 'Booking deleted successfully' });
+    res.status(200).json({ 
+        message: 'Booking deleted successfully' });
 }
 
 module.exports = {

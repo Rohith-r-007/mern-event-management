@@ -38,16 +38,17 @@ async function getEventById(req, res){
 
 async function createEvent(req, res){
     try {
-        const {title, description, date, time, location, category, price, capacity} = req.body;
+        const {title, description, date, location, category, price, totalSeats, image} = req.body;
         const event = await eventModel.create({
             title,
             description,
             date,
-            time,
             location,
             category,
             price,
-            capacity
+            totalSeats,
+            image,
+            organizer: req.user._id
         });
 
         res.status(201).json(event);
@@ -59,16 +60,16 @@ async function createEvent(req, res){
 
 async function updateEvent(req, res){
     try {
-        const {title, description, date, time, location, category, price, capacity} = req.body;
+        const {title, description, date, location, category, price, totalSeats, image} = req.body;
         const event = await eventModel.findByIdAndUpdate(req.params.id, {
             title,
             description,
             date,
-            time,
             location,
             category,
             price,
-            capacity
+            totalSeats,
+            image
         }, {new: true});
 
         res.status(200).json(event);
