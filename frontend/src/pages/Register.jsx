@@ -28,7 +28,11 @@ const Register = () => {
                 navigate('/');
             }
         } catch (err) {
-            setError(err);
+            setError(
+                err.response?.data?.message ||
+                err.message ||
+                "Something went wrong"
+            );
         } finally {
             setLoading(false);
         }
