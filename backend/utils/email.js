@@ -5,11 +5,21 @@ dotenv.config();
 
 // template having our credentials
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
+});
+transporter.verify((error, success) => {
+    if (error) {
+        console.log("SMTP Error:", error);
+    } else {
+        console.log("SMTP Server is ready");
+    }
 });
 
 async function sendOtpEmail(userEmail, otp, type, eventDetails = null) {
