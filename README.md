@@ -1,6 +1,6 @@
 # Gatherly/Eventora
 
-Gatherly is a full-stack Event Management platform that allows users to discover events, book tickets, and manage bookings through OTP verification.
+A full-stack Event Management Platform that allows users to create, manage, and discover events. Gatherly provides secure authentication, email verification using OTP, event creation, participant management, and a modern responsive user interface.
 
 ## Features
 
